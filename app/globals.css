@@ -285,6 +285,18 @@
   }
 }
 
+@keyframes refresh-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--primary);
+  }
+  40% {
+    box-shadow: 0 0 28px 6px var(--primary);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
 .marquee {
   animation: marquee 35s linear infinite;
 }
@@ -304,6 +316,10 @@
 
 .float-effect {
   animation: float 3s ease-in-out infinite;
+}
+
+.refresh-animate {
+  animation: refresh-pulse 0.9s ease-out;
 }
 
 /* Adding animation utility classes for title */

@@ -1,347 +1,446 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 
-// Sample data types
-interface LiveResult {
-  id: string
-  player1: string
-  player2: string
-  score1: number
-  score2: number
-  court: string
-  status: "live" | "completed"
-  round: string
-}
-
-interface UpcomingMatch {
+interface Match {
   id: string
   matchNumber: number
   player1: string
   player2: string
   category: "u9" | "u11" | "u13" | "13+"
   round: string
+  status: "upcoming" | "live" | "completed"
+  score?: string
+  winner?: string
+  startTime?: string
+  endTime?: string
 }
 
-// Sample data - easily replaceable with API data
-const sampleLiveResults: LiveResult[] = [
-  {
-    id: "1",
-    player1: "Chen Wei Ming",
-    player2: "Viktor Axelsen",
-    score1: 21,
-    score2: 18,
-    court: "Court 1",
-    status: "live",
-    round: "Men's Singles Final",
-  },
-  {
-    id: "2",
-    player1: "Carolina Marin",
-    player2: "Tai Tzu-ying",
-    score1: 19,
-    score2: 21,
-    court: "Court 2",
-    status: "live",
-    round: "Women's Singles Semi",
-  },
-  {
-    id: "3",
-    player1: "Marcus Gideon",
-    player2: "Kevin Sukamuljo",
-    score1: 21,
-    score2: 15,
-    court: "Court 3",
-    status: "completed",
-    round: "Men's Doubles Quarter",
-  },
-  {
-    id: "4",
-    player1: "Greysia Polii",
-    player2: "Apriyani Rahayu",
-    score1: 21,
-    score2: 12,
-    court: "Court 4",
-    status: "completed",
-    round: "Women's Doubles Semi",
-  },
-  {
-    id: "5",
-    player1: "Zheng Siwei",
-    player2: "Huang Yaqiong",
-    score1: 18,
-    score2: 21,
-    court: "Court 5",
-    status: "live",
-    round: "Mixed Doubles Final",
-  },
-]
+interface MediaItem {
+  id: string
+  type: "image" | "video"
+  src: string
+  title: string
+  description?: string
+}
 
-const sampleUpcomingMatches: UpcomingMatch[] = [
-  {
-    id: "1",
-    matchNumber: 1,
-    player1: "Kento Momota",
-    player2: "Anders Antonsen",
-    category: "13+",
-    round: "Men's Singles Final",
-  },
-  {
-    id: "2",
-    matchNumber: 2,
-    player1: "Akane Yamaguchi",
-    player2: "An Se-young",
-    category: "13+",
-    round: "Women's Singles Final",
-  },
-  {
-    id: "3",
-    matchNumber: 3,
-    player1: "Mohammad Ahsan",
-    player2: "Hendra Setiawan",
-    category: "u13",
-    round: "Men's Doubles Final",
-  },
-  {
-    id: "4",
-    matchNumber: 4,
-    player1: "Chen Qingchen",
-    player2: "Jia Yifan",
-    category: "u13",
-    round: "Women's Doubles Final",
-  },
-  {
-    id: "5",
-    matchNumber: 5,
-    player1: "Dechapol Puavaranukroh",
-    player2: "Sapsiree Taerattanachai",
-    category: "u11",
-    round: "Mixed Doubles Final",
-  },
-  {
-    id: "6",
-    matchNumber: 6,
-    player1: "Lee Zii Jia",
-    player2: "Chou Tien-chen",
-    category: "u11",
-    round: "Men's Singles Semi",
-  },
-  {
-    id: "7",
-    matchNumber: 7,
-    player1: "Pusarla Sindhu",
-    player2: "Nozomi Okuhara",
-    category: "u9",
-    round: "Women's Singles Semi",
-  },
-  {
-    id: "8",
-    matchNumber: 8,
-    player1: "Fajar Alfian",
-    player2: "Muhammad Rian Ardianto",
-    category: "u9",
-    round: "Men's Doubles Semi",
-  },
-  {
-    id: "9",
-    matchNumber: 9,
-    player1: "Kim So-yeong",
-    player2: "Kong Hee-yong",
-    category: "13+",
-    round: "Women's Doubles Semi",
-  },
-  {
-    id: "10",
-    matchNumber: 10,
-    player1: "Wang Yilyu",
-    player2: "Huang Dongping",
-    category: "u13",
-    round: "Mixed Doubles Semi",
-  },
+interface ApiResponse {
+  success: boolean
+  data: Match[]
+  total: number
+  timestamp: string
+}
+
+const sampleMedia: MediaItem[] = [
+  { id: "1", type: "image", src: "/badminton-championship-trophy-ceremony.jpg", title: "Championship Trophy Ceremony" },
+  { id: "2", type: "image", src: "/badminton-players-celebrating-victory.jpg", title: "Victory Celebration" },
+  { id: "3", type: "image", src: "/badminton-match-action-shot.jpg", title: "Intense Match Action" },
+  { id: "4", type: "image", src: "/badminton-crowd-cheering.jpg", title: "Crowd Support" },
+  { id: "5", type: "image", src: "/badminton-player-serving.jpg", title: "Perfect Serve" },
+  { id: "6", type: "image", src: "/badminton-doubles-team-high-five.jpg", title: "Team Spirit" },
+  { id: "7", type: "image", src: "/badminton-medal-ceremony.jpg", title: "Medal Ceremony" },
+  { id: "8", type: "image", src: "/badminton-court-aerial-view.jpg", title: "Tournament Overview" },
+  { id: "9", type: "image", src: "/badminton-player-jumping-smash.jpg", title: "Power Smash" },
+  { id: "10", type: "image", src: "/badminton-referee-making-call.jpg", title: "Official Decision" },
+  { id: "11", type: "image", src: "/badminton-warm-up-session.jpg", title: "Pre-Match Preparation" },
+  { id: "12", type: "image", src: "/badminton-fans-with-flags.jpg", title: "Fan Support" },
+  { id: "13", type: "image", src: "/badminton-player-interview.jpg", title: "Post-Match Interview" },
+  { id: "14", type: "image", src: "/badminton-tournament-sponsors.jpg", title: "Tournament Sponsors" },
+  { id: "15", type: "image", src: "/badminton-closing-ceremony.jpg", title: "Closing Ceremony" },
 ]
 
 export default function BadmintonScoreboard() {
   const [currentTickerIndex, setCurrentTickerIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const [currentView, setCurrentView] = useState<"scoreboard" | "media">("scoreboard")
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0)
+  const [viewTimer, setViewTimer] = useState(0)
 
-  // Auto-scroll ticker every 3 seconds
+  const [recentMatches, setRecentMatches] = useState<Match[]>([])
+  const [liveMatches, setLiveMatches] = useState<Match[]>([])
+  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const [animateRecent, setAnimateRecent] = useState(false)
+  const [animateUpcoming, setAnimateUpcoming] = useState(false)
+  const [recentLoaded, setRecentLoaded] = useState(false)
+  const [liveLoaded, setLiveLoaded] = useState(false)
+  const [upcomingLoaded, setUpcomingLoaded] = useState(false)
+
+  const recentAnimTimeout = useRef<number | null>(null)
+  const upcomingAnimTimeout = useRef<number | null>(null)
+
+  const fetchMatches = async () => {
+    try {
+      setError(null)
+
+      // Kick off requests in parallel and handle each as it resolves
+      const recentPromise = fetch("/api/matches?status=completed&limit=10")
+        .then((r) => r.json() as Promise<ApiResponse>)
+        .then((recentData) => {
+          if (recentData.success) {
+            const recentChanged = JSON.stringify(recentMatches) !== JSON.stringify(recentData.data)
+            if (recentChanged) {
+              setRecentMatches(recentData.data)
+              setAnimateRecent(true)
+              if (recentAnimTimeout.current) window.clearTimeout(recentAnimTimeout.current)
+              recentAnimTimeout.current = window.setTimeout(() => setAnimateRecent(false), 900)
+            }
+            setRecentLoaded(true)
+          }
+        })
+        .catch((err) => {
+          console.error("[v0] recent fetch error:", err)
+          setError("Failed to fetch recent matches")
+        })
+
+      const livePromise = fetch("/api/matches?status=live")
+        .then((r) => r.json() as Promise<ApiResponse>)
+        .then((liveData) => {
+          if (liveData.success) {
+            const liveChanged = JSON.stringify(liveMatches) !== JSON.stringify(liveData.data)
+            if (liveChanged) {
+              setLiveMatches(liveData.data)
+              // recent row includes live; trigger recent animation too
+              setAnimateRecent(true)
+              if (recentAnimTimeout.current) window.clearTimeout(recentAnimTimeout.current)
+              recentAnimTimeout.current = window.setTimeout(() => setAnimateRecent(false), 900)
+            }
+            setLiveLoaded(true)
+          }
+        })
+        .catch((err) => {
+          console.error("[v0] live fetch error:", err)
+          setError("Failed to fetch live matches")
+        })
+
+      const upcomingPromise = fetch("/api/matches?status=upcoming&limit=6")
+        .then((r) => r.json() as Promise<ApiResponse>)
+        .then((upcomingData) => {
+          if (upcomingData.success) {
+            const upcomingChanged = JSON.stringify(upcomingMatches) !== JSON.stringify(upcomingData.data)
+            if (upcomingChanged) {
+              setUpcomingMatches(upcomingData.data)
+              setAnimateUpcoming(true)
+              if (upcomingAnimTimeout.current) window.clearTimeout(upcomingAnimTimeout.current)
+              upcomingAnimTimeout.current = window.setTimeout(() => setAnimateUpcoming(false), 900)
+            }
+            setUpcomingLoaded(true)
+          }
+        })
+        .catch((err) => {
+          console.error("[v0] upcoming fetch error:", err)
+          setError("Failed to fetch upcoming matches")
+        })
+
+      // Wait for all to settle (but sections already updated as they finish)
+      await Promise.allSettled([recentPromise, livePromise, upcomingPromise])
+    } catch (err) {
+      console.error("[v0] Error in fetchMatches:", err)
+      setError("Network error while fetching matches")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    if (isPaused) return
+    fetchMatches()
 
+    const dataRefreshInterval = setInterval(fetchMatches, 15000)
+
+    return () => {
+      clearInterval(dataRefreshInterval)
+      if (recentAnimTimeout.current) window.clearTimeout(recentAnimTimeout.current)
+      if (upcomingAnimTimeout.current) window.clearTimeout(upcomingAnimTimeout.current)
+    }
+  }, [])
+
+  useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTickerIndex((prev) => (prev + 2) % sampleUpcomingMatches.length)
-    }, 3000)
+      setViewTimer((prev) => {
+        const newTimer = prev + 1
+
+        if (currentView === "scoreboard" && newTimer >= 30) {
+          setCurrentView("media")
+          return 0
+        } else if (currentView === "media" && newTimer >= 20) {
+          setCurrentView("scoreboard")
+          setCurrentMediaIndex((prevIndex) => (prevIndex + 1) % sampleMedia.length)
+          return 0
+        }
+
+        return newTimer
+      })
+    }, 1000)
 
     return () => clearInterval(interval)
-  }, [isPaused])
+  }, [currentView])
 
-  const formatScore = (score1: number, score2: number, status: string) => {
-    if (status === "live") {
-      return (
-        <span className="flex items-center gap-3">
-          <span className="text-primary font-bold text-lg tracking-wider">{score1}</span>
-          <span className="text-muted-foreground text-sm">—</span>
-          <span className="text-primary font-bold text-lg tracking-wider">{score2}</span>
-          <Badge variant="destructive" className="text-xs font-semibold animate-pulse bg-red-500/90 glow-effect">
-            LIVE
-          </Badge>
-        </span>
-      )
+  useEffect(() => {
+    if (upcomingMatches.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentTickerIndex((prev) => (prev + 1) % Math.max(1, upcomingMatches.length - 1))
+      }, 4000)
+      return () => clearInterval(interval)
     }
+  }, [upcomingMatches.length])
+
+  const formatResult = (match: Match) => {
     return (
-      <span className="flex items-center gap-3">
-        <span className="font-bold text-lg tracking-wider">{score1}</span>
-        <span className="text-muted-foreground text-sm">—</span>
-        <span className="font-bold text-lg tracking-wider">{score2}</span>
-        <Badge variant="secondary" className="text-xs font-semibold bg-secondary/60">
-          FINAL
-        </Badge>
-      </span>
+      <div className="flex items-center gap-4">
+        <span className="font-bold text-lg tracking-wider text-foreground">{match.player1}</span>
+        <span className="text-muted-foreground font-light">vs</span>
+        <span className="font-bold text-lg tracking-wider text-foreground">{match.player2}</span>
+        <span className="text-accent font-semibold text-base mx-2">•</span>
+        <span className="text-primary font-bold text-lg tracking-wider">{match.score}</span>
+      </div>
+    )
+  }
+
+  const MediaSlideshow = () => {
+    const currentMedia = sampleMedia[currentMediaIndex]
+    const progress = (viewTimer / 20) * 100
+
+    return (
+      <div className="w-full max-w-8xl mx-auto p-6 min-h-screen bg-gradient-to-br from-background via-background to-card flex flex-col">
+        <div className="relative flex items-center justify-between mb-8 px-4">
+          <div className="w-20 h-20 md:w-24 md:h-24 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl"></div>
+          </div>
+
+          <div className="flex-1 text-center px-8">
+            <div className="relative">
+              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent uppercase tracking-[0.2em] font-mono">
+                <span className="inline-block">Super Cup</span>
+                <span className="inline-block text-2xl md:text-4xl mx-4">-</span>
+                <span className="inline-block">Season 03</span>
+              </h1>
+              <div className="w-32 h-1 mx-auto mt-4 bg-gradient-to-r from-primary via-accent to-primary rounded-full opacity-80"></div>
+            </div>
+          </div>
+
+          <div className="w-20 h-20 md:w-24 md:h-24 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl"></div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <Card className="relative overflow-hidden gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl max-w-6xl w-full">
+            <div className="relative">
+              <img
+                src={currentMedia.src || "/placeholder.svg"}
+                alt={currentMedia.title}
+                className="w-full h-[600px] object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+              <div className="absolute bottom-0 left-0 right-0 p-8">
+                <h3 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{currentMedia.title}</h3>
+                {currentMedia.description && (
+                  <p className="text-lg text-white/90 drop-shadow-lg">{currentMedia.description}</p>
+                )}
+              </div>
+
+              <div className="absolute top-0 left-0 right-0 h-1 bg-black/30">
+                <div
+                  className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-linear"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+
+              <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+                <span className="text-white font-bold">
+                  {currentMediaIndex + 1} / {sampleMedia.length}
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentView === "media") {
+    return <MediaSlideshow />
+  }
+
+  if (error) {
+    return (
+      <div className="w-full max-w-8xl mx-auto p-6 min-h-screen bg-gradient-to-br from-background via-background to-card flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-xl font-semibold text-red-500 mb-4">Error: {error}</p>
+          <button
+            onClick={fetchMatches}
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
     )
   }
 
   return (
     <div className="w-full max-w-8xl mx-auto p-6 space-y-8 min-h-screen bg-gradient-to-br from-background via-background to-card">
+      <div className="fixed top-4 right-4 z-50 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+        <span className="text-white font-bold text-sm">
+          {currentView === "scoreboard"
+            ? `Next ad in: ${30 - viewTimer}s`
+            : `Back to scoreboard in: ${20 - viewTimer}s`}
+        </span>
+      </div>
+
       <div className="relative flex items-center justify-between mb-8 px-4">
-        {/* Left Logo Placeholder */}
         <div className="w-20 h-20 md:w-24 md:h-24 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect">
           <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl"></div>
         </div>
 
         <div className="flex-1 text-center px-8">
           <div className="relative">
-            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent uppercase tracking-[0.2em] font-mono animate-fade-in-up">
-              <span className="inline-block animate-bounce-subtle">Super</span>
-              <span className="inline-block mx-4 animate-pulse-glow">Cup</span>
-              <span className="inline-block text-2xl md:text-4xl animate-slide-in-right">-</span>
-              <span className="inline-block ml-4 animate-typewriter">Season 03</span>
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent uppercase tracking-[0.2em] font-mono">
+              <span className="inline-block">Super Cup</span>
+              <span className="inline-block text-2xl md:text-4xl mx-4">-</span>
+              <span className="inline-block">Season 03</span>
             </h1>
-            <div className="relative w-32 h-1 mx-auto mt-4 overflow-hidden rounded-full bg-gradient-to-r from-transparent via-primary/30 to-transparent">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary animate-sweep-right"></div>
-            </div>
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-primary/60 rounded-full animate-float-1"></div>
-            <div className="absolute -top-2 left-1/3 w-1 h-1 bg-accent/60 rounded-full animate-float-2"></div>
-            <div className="absolute -top-3 right-1/3 w-1.5 h-1.5 bg-primary/40 rounded-full animate-float-3"></div>
+            <div className="w-32 h-1 mx-auto mt-4 bg-gradient-to-r from-primary via-accent to-primary rounded-full opacity-80"></div>
           </div>
         </div>
 
-        {/* Right Logo Placeholder */}
         <div className="w-20 h-20 md:w-24 md:h-24 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect">
           <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl"></div>
         </div>
       </div>
 
-      <Card className="relative overflow-hidden gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl">
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 px-6 py-4 border-b border-primary/20">
-          <h2 className="text-xl md:text-2xl font-bold text-primary uppercase tracking-[0.15em] font-mono flex items-center gap-3">
-            <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-            Live Match Results
-            <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-          </h2>
-        </div>
-        <div
-          className="relative h-20 flex items-center overflow-hidden"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          onFocus={() => setIsPaused(true)}
-          onBlur={() => setIsPaused(false)}
-          tabIndex={0}
-          role="region"
-          aria-label="Live badminton match results marquee"
+      <div className="mt-8">
+        <Card
+          className={`gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl ${animateUpcoming ? "refresh-animate" : ""}`}
         >
-          <div
-            className={`flex items-center gap-12 whitespace-nowrap ${isPaused ? "" : "marquee"}`}
-            style={{
-              animationPlayState: isPaused ? "paused" : "running",
-            }}
-          >
-            {sampleLiveResults.map((result) => (
-              <div
-                key={result.id}
-                className="flex items-center gap-6 px-8 py-4 gradient-bg rounded-2xl border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="text-sm font-bold text-accent bg-accent/10 px-3 py-1 rounded-lg uppercase tracking-wider">
-                  {result.court}
-                </div>
-                <div className="text-base">
-                  <span className="font-semibold text-foreground">{result.player1}</span>
-                  <span className="text-muted-foreground mx-3 font-light">vs</span>
-                  <span className="font-semibold text-foreground">{result.player2}</span>
-                </div>
-                <div className="text-base">{formatScore(result.score1, result.score2, result.status)}</div>
-                <div className="text-sm text-muted-foreground bg-muted/20 px-4 py-2 rounded-lg font-medium">
-                  {result.round}
-                </div>
-              </div>
-            ))}
+          <div className="bg-gradient-to-r from-accent/10 via-accent/5 to-accent/10 px-6 py-4 border-b border-accent/20">
+            <h3 className="text-lg md:text-xl font-bold text-accent uppercase tracking-[0.15em] font-mono flex items-center gap-3">
+              <span className="w-2 h-2 bg-accent rounded-full"></span>
+              Next Matches
+              <span className="w-2 h-2 bg-accent rounded-full"></span>
+            </h3>
           </div>
-        </div>
-      </Card>
-
-      <Card className="gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl">
-        <div className="bg-gradient-to-r from-accent/10 via-accent/5 to-accent/10 px-6 py-4 border-b border-primary/20">
-          <h2 className="text-xl md:text-2xl font-bold text-accent uppercase tracking-[0.15em] font-mono flex items-center gap-3">
-            <span className="w-2 h-2 bg-accent rounded-full"></span>
-            Next 10 Matches
-            <span className="w-2 h-2 bg-accent rounded-full"></span>
-          </h2>
-        </div>
-        <div
-          className="relative h-40 overflow-hidden"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          onFocus={() => setIsPaused(true)}
-          onBlur={() => setIsPaused(false)}
-          tabIndex={0}
-          role="region"
-          aria-label="Upcoming badminton matches ticker"
-        >
-          <div className="absolute inset-0 flex flex-col justify-center gap-3 px-6">
-            {[0, 1].map((offset) => {
-              const matchIndex = (currentTickerIndex + offset) % sampleUpcomingMatches.length
-              const match = sampleUpcomingMatches[matchIndex]
-              return (
-                <div
-                  key={`${match.id}-${currentTickerIndex}`}
-                  className="flex items-center gap-6 px-6 py-4 gradient-bg rounded-2xl border border-primary/20 shadow-xl transition-all duration-500 hover:shadow-2xl"
-                >
-                  <div className="text-primary font-bold text-base min-w-[100px] bg-primary/10 px-4 py-2 rounded-lg uppercase tracking-wider">
-                    Match #{match.matchNumber}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-base font-semibold">
-                      <span className="text-foreground">{match.player1}</span>
-                      <span className="text-muted-foreground mx-4 font-light">vs</span>
-                      <span className="text-foreground">{match.player2}</span>
+          <div className="p-6">
+            {upcomingMatches.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {upcomingMatches.slice(currentTickerIndex, currentTickerIndex + 3).map((match, index) => (
+                  <div
+                    key={match.id}
+                    className="gradient-bg rounded-xl p-4 border border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 ticker-slide-in"
+                    style={{ animationDelay: `${index * 0.2}s` }}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-accent bg-accent/10 px-3 py-1 rounded-lg uppercase tracking-wider">
+                          {match.category}
+                        </span>
+                        <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
+                          #{match.matchNumber}
+                        </span>
+                      </div>
                     </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-foreground text-lg tracking-wide">{match.player1}</span>
+                      </div>
+                      <div className="text-center text-muted-foreground font-light text-sm">vs</div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-foreground text-lg tracking-wide">{match.player2}</span>
+                      </div>
+                    </div>
+                    {match.startTime && (
+                      <div className="mt-3 pt-3 border-t border-primary/10">
+                        <span className="text-sm text-muted-foreground bg-muted/20 px-3 py-1 rounded-lg">
+                          {match.startTime}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-base text-accent font-bold bg-accent/10 px-4 py-2 rounded-lg uppercase tracking-wider">
-                    {match.category}
+                ))}
+              </div>
+            ) : (
+              // simple skeleton rows
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="rounded-xl p-4 border border-primary/10 shadow-lg">
+                    <div className="h-5 w-24 bg-muted/20 rounded mb-3 animate-pulse" />
+                    <div className="h-4 w-3/4 bg-muted/20 rounded mb-2 animate-pulse" />
+                    <div className="h-4 w-2/3 bg-muted/20 rounded animate-pulse" />
                   </div>
-                  <div className="text-sm text-muted-foreground bg-muted/20 px-4 py-2 rounded-lg font-medium min-w-[140px] text-center">
-                    {match.round}
-                  </div>
-                </div>
-              )
-            })}
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        </Card>
+      </div>
 
-        <div className="flex justify-center gap-2 p-4 bg-gradient-to-r from-secondary/5 via-secondary/10 to-secondary/5">
-          {Array.from({ length: Math.ceil(sampleUpcomingMatches.length / 2) }).map((_, index) => (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-3">
+          <Card
+            className={`relative overflow-hidden gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl ${animateRecent ? "refresh-animate" : ""}`}
+          >
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 px-6 py-4 border-b border-primary/20">
+              <h2 className="text-xl md:text-2xl font-bold text-primary uppercase tracking-[0.15em] font-mono flex items-center gap-3">
+                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                Recent Match Results
+                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                {liveMatches.length > 0 && (
+                  <span className="ml-4 text-sm bg-red-500 text-white px-3 py-1 rounded-full animate-pulse">
+                    {liveMatches.length} LIVE
+                  </span>
+                )}
+              </h2>
+            </div>
             <div
-              key={index}
-              className={`w-3 h-3 rounded-full transition-all duration-500 ${
-                Math.floor(currentTickerIndex / 2) === index
-                  ? "bg-primary shadow-lg shadow-primary/50"
-                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-              }`}
-            />
-          ))}
+              className="relative h-20 flex items-center overflow-hidden"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+              onFocus={() => setIsPaused(true)}
+              onBlur={() => setIsPaused(false)}
+              tabIndex={0}
+              role="region"
+              aria-label="Recent badminton match results marquee"
+            >
+              {[...liveMatches, ...recentMatches].length > 0 ? (
+                <div
+                  className={`flex items-center gap-12 whitespace-nowrap ${isPaused ? "" : "marquee"}`}
+                  style={{ animationPlayState: isPaused ? "paused" : "running" }}
+                >
+                  {[...liveMatches, ...recentMatches].map((match) => (
+                    <div
+                      key={match.id}
+                      className="flex items-center gap-6 px-8 py-4 gradient-bg rounded-2xl border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm font-bold text-accent bg-accent/10 px-3 py-1 rounded-lg uppercase tracking-wider">
+                          {match.category}
+                        </div>
+                        <div className="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
+                          #{match.matchNumber}
+                        </div>
+                        {match.status === "live" && (
+                          <div className="text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-lg animate-pulse">
+                            LIVE
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-base">{formatResult(match)}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full px-6">
+                  <div className="h-10 w-full rounded-xl bg-muted/20 animate-pulse" />
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
