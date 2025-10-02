@@ -8,8 +8,8 @@ interface Match {
   matchNumber: number
   player1: string
   player2: string
-  category: "u9" | "u11" | "u13" | "13+"
-  round: string
+  category?: string
+  round?: string
   status: "upcoming" | "live" | "completed"
   score?: string
   winner?: string
@@ -31,6 +31,17 @@ interface ApiResponse {
   total: number
   timestamp: string
 }
+
+type SheetRow = {
+  Match?: string
+  "Player A"?: string
+  "Player B"?: string
+  Score?: string
+  Winner?: string
+  Status?: string // "past" | "next"
+}
+
+const SHEET_URL = "https://opensheet.elk.sh/16bUHth1gRVkT3c7kkIr_Bo7kj4IQ87ETZ1tSjkuCQFw/Sheet1"
 
 const sampleMedia: MediaItem[] = [
   { id: "1", type: "image", src: "/badminton-championship-trophy-ceremony.jpg", title: "Championship Trophy Ceremony" },
@@ -76,69 +87,67 @@ export default function BadmintonScoreboard() {
     try {
       setError(null)
 
-      // Kick off requests in parallel and handle each as it resolves
-      const recentPromise = fetch("/api/matches?status=completed&limit=10")
-        .then((r) => r.json() as Promise<ApiResponse>)
-        .then((recentData) => {
-          if (recentData.success) {
-            const recentChanged = JSON.stringify(recentMatches) !== JSON.stringify(recentData.data)
-            if (recentChanged) {
-              setRecentMatches(recentData.data)
-              setAnimateRecent(true)
-              if (recentAnimTimeout.current) window.clearTimeout(recentAnimTimeout.current)
-              recentAnimTimeout.current = window.setTimeout(() => setAnimateRecent(false), 900)
-            }
-            setRecentLoaded(true)
-          }
-        })
-        .catch((err) => {
-          console.error("[v0] recent fetch error:", err)
-          setError("Failed to fetch recent matches")
-        })
+      const res = await fetch(SHEET_URL, { cache: "no-store" })
+      const rows = (await res.json()) as SheetRow[]
 
-      const livePromise = fetch("/api/matches?status=live")
-        .then((r) => r.json() as Promise<ApiResponse>)
-        .then((liveData) => {
-          if (liveData.success) {
-            const liveChanged = JSON.stringify(liveMatches) !== JSON.stringify(liveData.data)
-            if (liveChanged) {
-              setLiveMatches(liveData.data)
-              // recent row includes live; trigger recent animation too
-              setAnimateRecent(true)
-              if (recentAnimTimeout.current) window.clearTimeout(recentAnimTimeout.current)
-              recentAnimTimeout.current = window.setTimeout(() => setAnimateRecent(false), 900)
-            }
-            setLiveLoaded(true)
-          }
-        })
-        .catch((err) => {
-          console.error("[v0] live fetch error:", err)
-          setError("Failed to fetch live matches")
-        })
+      const parsed: Match[] = rows
+        .map((r) => {
+          const matchNum = Number.parseInt(String(r.Match || "").trim(), 10)
+          if (Number.isNaN(matchNum)) return null
+          const statusRaw = (r.Status || "").toLowerCase().trim()
+          const status: Match["status"] =
+            statusRaw === "past" ? "completed" : statusRaw === "next" ? "upcoming" : "upcoming"
 
-      const upcomingPromise = fetch("/api/matches?status=upcoming&limit=6")
-        .then((r) => r.json() as Promise<ApiResponse>)
-        .then((upcomingData) => {
-          if (upcomingData.success) {
-            const upcomingChanged = JSON.stringify(upcomingMatches) !== JSON.stringify(upcomingData.data)
-            if (upcomingChanged) {
-              setUpcomingMatches(upcomingData.data)
-              setAnimateUpcoming(true)
-              if (upcomingAnimTimeout.current) window.clearTimeout(upcomingAnimTimeout.current)
-              upcomingAnimTimeout.current = window.setTimeout(() => setAnimateUpcoming(false), 900)
-            }
-            setUpcomingLoaded(true)
-          }
+          return {
+            id: `sheet-${matchNum}`,
+            matchNumber: matchNum,
+            player1: (r["Player A"] || "").trim(),
+            player2: (r["Player B"] || "").trim(),
+            status,
+            score: (r.Score || "").trim(),
+            winner: (r.Winner || "").trim(),
+          } as Match
         })
-        .catch((err) => {
-          console.error("[v0] upcoming fetch error:", err)
-          setError("Failed to fetch upcoming matches")
-        })
+        .filter(Boolean) as Match[]
 
-      // Wait for all to settle (but sections already updated as they finish)
-      await Promise.allSettled([recentPromise, livePromise, upcomingPromise])
+      const nonEmpty = parsed.filter(
+        (m) => m.player1.length > 0 || m.player2.length > 0 || (m.score && m.score.length > 0),
+      )
+
+      const upcoming = nonEmpty
+        .filter((m) => m.status === "upcoming")
+        .sort((a, b) => a.matchNumber - b.matchNumber)
+        .slice(0, 6)
+
+      const recent = nonEmpty
+        .filter((m) => m.status === "completed" && (m.score?.length ?? 0) > 0)
+        .sort((a, b) => b.matchNumber - a.matchNumber)
+        .slice(0, 4)
+
+      const live: Match[] = []
+
+      const recentChanged = JSON.stringify(recentMatches) !== JSON.stringify(recent)
+      const upcomingChanged = JSON.stringify(upcomingMatches) !== JSON.stringify(upcoming)
+
+      if (recentChanged) {
+        setRecentMatches(recent)
+        setAnimateRecent(true)
+        if (recentAnimTimeout.current) window.clearTimeout(recentAnimTimeout.current)
+        recentAnimTimeout.current = window.setTimeout(() => setAnimateRecent(false), 900)
+      }
+      if (upcomingChanged) {
+        setUpcomingMatches(upcoming)
+        setAnimateUpcoming(true)
+        if (upcomingAnimTimeout.current) window.clearTimeout(upcomingAnimTimeout.current)
+        upcomingAnimTimeout.current = window.setTimeout(() => setAnimateUpcoming(false), 900)
+      }
+
+      setLiveMatches(live)
+      setRecentLoaded(true)
+      setUpcomingLoaded(true)
+      setLiveLoaded(true)
     } catch (err) {
-      console.error("[v0] Error in fetchMatches:", err)
+      console.error("[v0] Error fetching OpenSheet rows:", err)
       setError("Network error while fetching matches")
     } finally {
       setLoading(false)
@@ -206,23 +215,29 @@ export default function BadmintonScoreboard() {
     return (
       <div className="w-full max-w-8xl mx-auto p-6 min-h-screen bg-gradient-to-br from-background via-background to-card flex flex-col">
         <div className="relative flex items-center justify-between mb-8 px-4">
-          <div className="w-20 h-20 md:w-24 md:h-24 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl"></div>
+          <div className="w-36 h-36 md:w-44 md:h-44 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
+            <img
+              src="/images/design-mode/academy-logo.png"
+              alt="Sports Clan Badminton Academy logo"
+              className="w-full h-full object-contain p-1"
+            />
           </div>
 
           <div className="flex-1 text-center px-8">
             <div className="relative">
-              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent uppercase tracking-[0.2em] font-mono">
-                <span className="inline-block">Super Cup</span>
-                <span className="inline-block text-2xl md:text-4xl mx-4">-</span>
-                <span className="inline-block">Season 03</span>
+              <h1 className="whitespace-nowrap text-4xl md:text-7xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
+                Super Cup - Season 03
               </h1>
-              <div className="w-32 h-1 mx-auto mt-4 bg-gradient-to-r from-primary via-accent to-primary rounded-full opacity-80"></div>
+              <div className="w-32 h-1 mx-auto mt-4 bg-accent rounded-full opacity-90"></div>
             </div>
           </div>
 
-          <div className="w-20 h-20 md:w-24 md:h-24 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl"></div>
+          <div className="w-36 h-36 md:w-44 md:h-44 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
+            <img
+              src="/images/design-mode/other-logo.png"
+              alt="Super Park Sports logo"
+              className="w-full h-full object-contain p-1"
+            />
           </div>
         </div>
 
@@ -293,23 +308,29 @@ export default function BadmintonScoreboard() {
       </div>
 
       <div className="relative flex items-center justify-between mb-8 px-4">
-        <div className="w-20 h-20 md:w-24 md:h-24 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl"></div>
+        <div className="w-36 h-36 md:w-48 md:h-48 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
+          <img
+            src="/images/design-mode/academy-logo.png"
+            alt="Sports Clan Badminton Academy logo"
+            className="w-full h-full object-contain p-1"
+          />
         </div>
 
         <div className="flex-1 text-center px-8">
           <div className="relative">
-            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent uppercase tracking-[0.2em] font-mono">
-              <span className="inline-block">Super Cup</span>
-              <span className="inline-block text-2xl md:text-4xl mx-4">-</span>
-              <span className="inline-block">Season 03</span>
+            <h1 className="whitespace-nowrap text-4xl md:text-7xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
+              Super Cup - Season 03
             </h1>
-            <div className="w-32 h-1 mx-auto mt-4 bg-gradient-to-r from-primary via-accent to-primary rounded-full opacity-80"></div>
+            <div className="w-32 h-1 mx-auto mt-4 bg-accent rounded-full opacity-90"></div>
           </div>
         </div>
 
-        <div className="w-20 h-20 md:w-24 md:h-24 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl"></div>
+        <div className="w-36 h-36 md:w-48 md:h-48 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
+          <img
+            src="/images/design-mode/other-logo.png"
+            alt="Super Park Sports logo"
+            className="w-full h-full object-contain p-1"
+          />
         </div>
       </div>
 
@@ -326,18 +347,15 @@ export default function BadmintonScoreboard() {
           </div>
           <div className="p-6">
             {upcomingMatches.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {upcomingMatches.slice(currentTickerIndex, currentTickerIndex + 3).map((match, index) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                {upcomingMatches.slice(0, 6).map((match, index) => (
                   <div
                     key={match.id}
                     className="gradient-bg rounded-xl p-4 border border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 ticker-slide-in"
-                    style={{ animationDelay: `${index * 0.2}s` }}
+                    style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-accent bg-accent/10 px-3 py-1 rounded-lg uppercase tracking-wider">
-                          {match.category}
-                        </span>
                         <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
                           #{match.matchNumber}
                         </span>
@@ -363,9 +381,8 @@ export default function BadmintonScoreboard() {
                 ))}
               </div>
             ) : (
-              // simple skeleton rows
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 3 }).map((_, i) => (
+                {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="rounded-xl p-4 border border-primary/10 shadow-lg">
                     <div className="h-5 w-24 bg-muted/20 rounded mb-3 animate-pulse" />
                     <div className="h-4 w-3/4 bg-muted/20 rounded mb-2 animate-pulse" />
@@ -416,9 +433,6 @@ export default function BadmintonScoreboard() {
                       className="flex items-center gap-6 px-8 py-4 gradient-bg rounded-2xl border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="text-sm font-bold text-accent bg-accent/10 px-3 py-1 rounded-lg uppercase tracking-wider">
-                          {match.category}
-                        </div>
                         <div className="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
                           #{match.matchNumber}
                         </div>
