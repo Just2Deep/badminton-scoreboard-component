@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
+import { useEffect, useRef, useState } from "react";
 
 interface Match {
     id: string;
@@ -44,106 +44,56 @@ type SheetRow = {
 const SHEET_URL =
     "https://opensheet.elk.sh/16bUHth1gRVkT3c7kkIr_Bo7kj4IQ87ETZ1tSjkuCQFw/Sheet1";
 
-const sampleMedia: MediaItem[] = [
-    {
-        id: "1",
-        type: "image",
-        src: "/badminton-championship-trophy-ceremony.jpg",
-        title: "Championship Trophy Ceremony",
-    },
-    {
-        id: "2",
-        type: "image",
-        src: "/badminton-players-celebrating-victory.jpg",
-        title: "Victory Celebration",
-    },
-    {
-        id: "3",
-        type: "image",
-        src: "/badminton-match-action-shot.jpg",
-        title: "Intense Match Action",
-    },
-    {
-        id: "4",
-        type: "image",
-        src: "/badminton-crowd-cheering.jpg",
-        title: "Crowd Support",
-    },
-    {
-        id: "5",
-        type: "image",
-        src: "/badminton-player-serving.jpg",
-        title: "Perfect Serve",
-    },
-    {
-        id: "6",
-        type: "image",
-        src: "/badminton-doubles-team-high-five.jpg",
-        title: "Team Spirit",
-    },
-    {
-        id: "7",
-        type: "image",
-        src: "/badminton-medal-ceremony.jpg",
-        title: "Medal Ceremony",
-    },
-    {
-        id: "8",
-        type: "image",
-        src: "/badminton-court-aerial-view.jpg",
-        title: "Tournament Overview",
-    },
-    {
-        id: "9",
-        type: "image",
-        src: "/badminton-player-jumping-smash.jpg",
-        title: "Power Smash",
-    },
-    {
-        id: "10",
-        type: "image",
-        src: "/badminton-referee-making-call.jpg",
-        title: "Official Decision",
-    },
-    {
-        id: "11",
-        type: "image",
-        src: "/badminton-warm-up-session.jpg",
-        title: "Pre-Match Preparation",
-    },
-    {
-        id: "12",
-        type: "image",
-        src: "/badminton-fans-with-flags.jpg",
-        title: "Fan Support",
-    },
-    {
-        id: "13",
-        type: "image",
-        src: "/badminton-player-interview.jpg",
-        title: "Post-Match Interview",
-    },
-    {
-        id: "14",
-        type: "image",
-        src: "/badminton-tournament-sponsors.jpg",
-        title: "Tournament Sponsors",
-    },
-    {
-        id: "15",
-        type: "image",
-        src: "/badminton-closing-ceremony.jpg",
-        title: "Closing Ceremony",
-    },
-];
+const MEDIA_TITLES: Record<string, string> = {
+    "badminton-championship-trophy-ceremony": "Championship Trophy Ceremony",
+    "badminton-closing-ceremony": "Closing Ceremony",
+    "badminton-court-aerial-view": "Court Aerial View",
+    "badminton-crowd-cheering": "Crowd Support",
+    "badminton-doubles-team-high-five": "Team Spirit",
+    "badminton-fans-with-flags": "Fan Support",
+    "badminton-match-action-shot": "Match Action",
+    "badminton-medal-ceremony": "Medal Ceremony",
+    "badminton-player-interview": "Player Interview",
+    "badminton-player-jumping-smash": "Power Smash",
+    "badminton-player-serving": "Perfect Serve",
+    "badminton-players-celebrating-victory": "Victory Celebration",
+    "badminton-referee-making-call": "Referee Call",
+    "badminton-tournament-sponsors": "Tournament Sponsors",
+    "badminton-warm-up-session": "Warm Up Session"
+};
+
+const BrandLogos = () => (
+    <>
+        <div className="fixed top-4 left-4 z-50">
+            <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
+                <img
+                    src="/images/design-mode/academy-logo.png"
+                    alt="Sports Clan Badminton Academy logo"
+                    className="w-full h-full object-contain p-1"
+                />
+            </div>
+        </div>
+        <div className="fixed top-4 right-4 z-50">
+            <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
+                <img
+                    src="/images/design-mode/other-logo.png"
+                    alt="Super Park Sports logo"
+                    className="w-full h-full object-contain p-1"
+                />
+            </div>
+        </div>
+    </>
+);
 
 export default function BadmintonScoreboard() {
+    const [publicImages, setPublicImages] = useState<MediaItem[]>([]);
     const [currentTickerIndex, setCurrentTickerIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [currentView, setCurrentView] = useState<"scoreboard" | "media">(
         "scoreboard"
     );
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+
     const [viewTimer, setViewTimer] = useState(0);
 
     const [recentMatches, setRecentMatches] = useState<Match[]>([]);
@@ -256,6 +206,31 @@ export default function BadmintonScoreboard() {
     };
 
     useEffect(() => {
+        const loadMediaFiles = async () => {
+            try {
+                const response = await fetch('/api/media');
+                if (!response.ok) throw new Error('Failed to fetch media files');
+                
+                const files = await response.json();
+                const mediaItems: MediaItem[] = files.map((filename: string, index: number) => {
+                    const nameWithoutExt = filename.replace('.jpg', '');
+                    return {
+                        id: `media${index + 1}`,
+                        type: 'image',
+                        src: `/media/${filename}`,
+                        title: MEDIA_TITLES[nameWithoutExt] || nameWithoutExt,
+                    };
+                });
+                setPublicImages(mediaItems);
+            } catch (error) {
+                console.error('Error loading media files:', error);
+            }
+        };
+
+        loadMediaFiles();
+    }, []);
+
+    useEffect(() => {
         fetchMatches();
 
         const dataRefreshInterval = setInterval(fetchMatches, 15000);
@@ -279,9 +254,7 @@ export default function BadmintonScoreboard() {
                     return 0;
                 } else if (currentView === "media" && newTimer >= 20) {
                     setCurrentView("scoreboard");
-                    setCurrentMediaIndex(
-                        (prevIndex) => (prevIndex + 1) % sampleMedia.length
-                    );
+                    setCurrentMediaIndex((prev) => (prev + 1) % publicImages.length);
                     return 0;
                 }
 
@@ -327,32 +300,14 @@ export default function BadmintonScoreboard() {
     };
 
     const MediaSlideshow = () => {
-        const currentMedia = sampleMedia[currentMediaIndex];
+        const currentMedia = publicImages[currentMediaIndex];
         const progress = (viewTimer / 20) * 100;
 
         return (
             <div className="w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden">
                 {/* Vertically centered logos */}
-                <div className="absolute top-1/2 left-4 transform -translate-y-1/2 z-10">
-                    <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
-                        <img
-                            src="/images/design-mode/academy-logo.png"
-                            alt="Sports Clan Badminton Academy logo"
-                            className="w-full h-full object-contain p-1"
-                        />
-                    </div>
-                </div>
-
-                <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-10">
-                    <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
-                        <img
-                            src="/images/design-mode/other-logo.png"
-                            alt="Super Park Sports logo"
-                            className="w-full h-full object-contain p-1"
-                        />
-                    </div>
-                </div>
-
+                <BrandLogos />
+                
                 {/* Centered header container */}
                 <div className="flex items-center justify-center mb-2 px-2 flex-shrink-0">
                     <div className="text-center">
@@ -397,8 +352,7 @@ export default function BadmintonScoreboard() {
 
                                 <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
                                     <span className="text-white font-bold">
-                                        {currentMediaIndex + 1} /{" "}
-                                        {sampleMedia.length}
+                                        {`${currentMediaIndex + 1}/${publicImages.length}`}
                                     </span>
                                 </div>
                             </div>
@@ -416,26 +370,7 @@ export default function BadmintonScoreboard() {
     if (error) {
         return (
             <div className="w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden">
-                {/* Vertically centered logos */}
-                <div className="absolute top-1/2 left-4 transform -translate-y-1/2 z-10">
-                    <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
-                        <img
-                            src="/images/design-mode/academy-logo.png"
-                            alt="Sports Clan Badminton Academy logo"
-                            className="w-full h-full object-contain p-1"
-                        />
-                    </div>
-                </div>
-
-                <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-10">
-                    <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
-                        <img
-                            src="/images/design-mode/other-logo.png"
-                            alt="Super Park Sports logo"
-                            className="w-full h-full object-contain p-1"
-                        />
-                    </div>
-                </div>
+                <BrandLogos />
 
                 {/* Centered header container */}
                 <div className="flex items-center justify-center mb-2 px-2 flex-shrink-0">
@@ -469,39 +404,14 @@ export default function BadmintonScoreboard() {
 
     return (
         <div className="w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden">
-            <div className="fixed top-4 right-4 z-50 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
-                <span className="text-white font-bold text-sm">
-                    {currentView === "scoreboard"
-                        ? `Next ad in: ${30 - viewTimer}s`
-                        : `Back to scoreboard in: ${20 - viewTimer}s`}
-                </span>
-            </div>
 
-            {/* Logo containers outside main content */}
-            <div className="relative flex items-center justify-between mb-1 px-2 flex-shrink-0">
-                <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
-                    <img
-                        src="/images/design-mode/academy-logo.png"
-                        alt="Sports Clan Badminton Academy logo"
-                        className="w-full h-full object-contain p-1"
-                    />
-                </div>
-
-                <div className="flex-1 text-center px-8">
-                    <div className="relative">
-                        <h1 className="whitespace-nowrap text-3xl md:text-6xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
-                            Super Cup - Season 03
-                        </h1>
-                        <div className="w-32 h-1 mx-auto mt-4 bg-accent rounded-full opacity-90"></div>
-                    </div>
-                </div>
-
-                <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
-                    <img
-                        src="/images/design-mode/other-logo.png"
-                        alt="Super Park Sports logo"
-                        className="w-full h-full object-contain p-1"
-                    />
+            <BrandLogos />
+            <div className="mt-44 text-center px-8 flex-shrink-0">
+                <div className="relative">
+                    <h1 className="whitespace-nowrap text-3xl md:text-6xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
+                        Super Cup - Season 03
+                    </h1>
+                    <div className="w-32 h-1 mx-auto mt-4 bg-accent rounded-full opacity-90"></div>
                 </div>
             </div>
 
@@ -587,8 +497,8 @@ export default function BadmintonScoreboard() {
                         }`}
                     >
                         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 px-4 py-2 border-b border-primary/20">
-                            <h2 className="text-xl md:text-2xl font-bold text-primary uppercase tracking-[0.15em] font-mono flex items-center gap-3">
-                                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                            <h2 className="text-xl md:text-2xl font-bold text-primary uppercase font-mono flex items-center gap-3">
+                                <span className="w-2 h-2 bg-primary rounded-full"></span>
                                 Recent Match Results
                                 <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
                                 {liveMatches.length > 0 && (
@@ -600,8 +510,6 @@ export default function BadmintonScoreboard() {
                         </div>
                         <div
                             className="relative h-12 flex items-center overflow-hidden"
-                            onMouseEnter={() => setIsPaused(true)}
-                            onMouseLeave={() => setIsPaused(false)}
                             onFocus={() => setIsPaused(true)}
                             onBlur={() => setIsPaused(false)}
                             tabIndex={0}
