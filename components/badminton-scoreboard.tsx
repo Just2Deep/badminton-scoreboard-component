@@ -107,7 +107,7 @@ export default function BadmintonScoreboard() {
             const upcoming = nonEmpty
                 .filter((m) => m.status === "upcoming")
                 .sort((a, b) => a.matchNumber - b.matchNumber)
-                .slice(0, 6);
+                .slice(0, 4);
 
             const recent = nonEmpty
                 .filter(
@@ -115,7 +115,7 @@ export default function BadmintonScoreboard() {
                         m.status === "completed" && (m.score?.length ?? 0) > 0
                 )
                 .sort((a, b) => b.matchNumber - a.matchNumber)
-                .slice(0, 4);
+                .slice(0, 6);
 
             const live: Match[] = [];
 
@@ -201,10 +201,10 @@ export default function BadmintonScoreboard() {
     }, [currentView]);
 
     useEffect(() => {
-        if (upcomingMatches.length > 3) {
+        if (upcomingMatches.length > 4) {
             const interval = setInterval(() => {
                 setCurrentTickerIndex(
-                    (prev) => (prev + 1) % Math.ceil(upcomingMatches.length / 3)
+                    (prev) => (prev + 1) % Math.ceil(upcomingMatches.length / 4)
                 );
             }, 5000);
             return () => clearInterval(interval);
@@ -216,19 +216,19 @@ export default function BadmintonScoreboard() {
     const formatResult = (match: Match) => {
         return (
             <div className="flex items-center gap-3">
-                <span className="font-bold text-base tracking-wider text-foreground">
+                <span className="font-bold text-xl tracking-wider text-foreground">
                     {match.player1}
                 </span>
-                <span className="text-muted-foreground font-light text-sm">
+                <span className="text-muted-foreground font-light text-xl">
                     vs
                 </span>
-                <span className="font-bold text-base tracking-wider text-foreground">
+                <span className="font-bold text-xl tracking-wider text-foreground">
                     {match.player2}
                 </span>
-                <span className="text-accent font-semibold text-base mx-1">
+                <span className="text-accent font-semibold text-xl mx-1">
                     •
                 </span>
-                <span className="text-primary font-bold text-base tracking-wider">
+                <span className="text-primary font-bold text-xl tracking-wider">
                     {match.score}
                 </span>
             </div>
@@ -295,9 +295,9 @@ export default function BadmintonScoreboard() {
                         }`}
                     >
                         <div className="bg-gradient-to-r from-accent/10 via-accent/5 to-accent/10 px-4 py-2 border-b border-accent/20">
-                            <h3 className="text-xl md:text-2xl font-bold text-accent uppercase tracking-[0.15em] font-mono flex items-center gap-3">
+                            <h3 className="text-xl md:text-4xl font-bold text-accent uppercase tracking-[0.15em] font-mono flex items-center gap-3 justify-center">
                                 <span className="w-2 h-2 bg-accent rounded-full"></span>
-                                Next Matches
+                                Upcoming Matches
                                 <span className="w-2 h-2 bg-accent rounded-full"></span>
                             </h3>
                         </div>
@@ -305,34 +305,27 @@ export default function BadmintonScoreboard() {
                             {upcomingMatches.length > 0 ? (
                                 <div className="relative overflow-hidden">
                                     <div 
-                                        className="flex transition-transform duration-500 ease-in-out"
+                                        className="grid grid-cols-2 gap-4 transition-transform duration-500 ease-in-out"
                                         style={{
-                                            transform: `translateX(-${currentTickerIndex * (100 / Math.min(3, upcomingMatches.length))}%)`,
+                                            transform: `translateX(-${currentTickerIndex * 100}%)`,
                                         }}
                                     >
                                         {upcomingMatches.map((match, index) => (
                                             <div
                                                 key={match.id}
-                                                className="w-full min-w-[33.333%] px-2"
+                                                className="px-2"
                                             >
                                                 <div 
                                                     className="gradient-bg rounded-lg p-4 border border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 h-full"
                                                 >
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-base font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                                                                #{match.matchNumber}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <span className="font-bold text-foreground text-base tracking-wide truncate flex-1 text-center">
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <span className="font-bold text-foreground text-xl tracking-wide truncate flex-1 text-center">
                                                             {match.player1}
                                                         </span>
-                                                        <span className="text-muted-foreground font-light text-sm flex-shrink-0">
+                                                        <span className="text-muted-foreground font-light text-xl flex-shrink-0">
                                                             vs
                                                         </span>
-                                                        <span className="font-bold text-foreground text-base tracking-wide truncate flex-1 text-center">
+                                                        <span className="font-bold text-foreground text-xl tracking-wide truncate flex-1 text-center">
                                                             {match.player2}
                                                         </span>
                                                     </div>
@@ -347,9 +340,9 @@ export default function BadmintonScoreboard() {
                                             </div>
                                         ))}
                                     </div>
-                                    {upcomingMatches.length > 3 && (
-                                        <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-2 py-4">
-                                            {Array.from({ length: Math.ceil(upcomingMatches.length / 2) }).map((_, idx) => (
+                                    {upcomingMatches.length > 4 && (
+                                        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-2">
+                                            {Array.from({ length: Math.ceil(upcomingMatches.length / 4) }).map((_, idx) => (
                                                 <button
                                                     key={idx}
                                                     className={`w-2 h-2 rounded-full transition-all duration-300 ${
@@ -363,8 +356,8 @@ export default function BadmintonScoreboard() {
                                     )}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {Array.from({ length: 3 }).map((_, i) => (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {Array.from({ length: 2 }).map((_, i) => (
                                         <div
                                             key={i}
                                             className="rounded-xl p-5 border border-primary/10 shadow-lg"
@@ -385,7 +378,7 @@ export default function BadmintonScoreboard() {
                         }`}
                     >
                         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 px-4 py-2 border-b border-primary/20">
-                            <h2 className="text-xl md:text-2xl font-bold text-primary uppercase font-mono flex items-center gap-3">
+                            <h2 className="text-xl md:text-4xl font-bold text-primary uppercase font-mono flex items-center justify-center gap-3 tracking-[0.15em]">
                                 <span className="w-2 h-2 bg-primary rounded-full"></span>
                                 Recent Match Results
                                 <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
@@ -397,7 +390,7 @@ export default function BadmintonScoreboard() {
                             </h2>
                         </div>
                         <div
-                            className="relative h-4 flex items-center overflow-hidden"
+                            className="relative py-2 min-h-10 flex items-center overflow-hidden"
                             onFocus={() => setIsPaused(true)}
                             onBlur={() => setIsPaused(false)}
                             tabIndex={0}
@@ -419,19 +412,19 @@ export default function BadmintonScoreboard() {
                                         (match) => (
                                             <div
                                                 key={match.id}
-                                                className="flex items-center gap-4 px-3 py-1 gradient-bg rounded-xl border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300"
+                                                className="flex items-center gap-4 px-3 py-3 gradient-bg rounded-xl border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className="text-base font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
+                                                    <div className="text-base font-bold text-primary bg-primary/10 px-3 py-2 rounded-lg">
                                                         #{match.matchNumber}
                                                     </div>
                                                     {match.status === "live" && (
-                                                        <div className="text-sm font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-lg animate-pulse">
+                                                        <div className="text-sm font-bold text-red-500 bg-red-500/10 px-2 py-2 rounded-lg animate-pulse">
                                                             LIVE
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="text-lg">
+                                                <div className="text-lg leading-relaxed">
                                                     {formatResult(match)}
                                                 </div>
                                             </div>
