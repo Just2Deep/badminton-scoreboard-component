@@ -288,7 +288,7 @@ export default function BadmintonScoreboard() {
             </div>
 
             <div className="w-full max-w-6xl mx-auto flex flex-col overflow-hidden px-2">
-                <div className="flex flex-col gap-1 min-h-0 overflow-hidden bg-gradient-to-br from-card/50 to-background/30 rounded-2xl p-2 border border-primary/10 shadow-inner">
+                <div className="flex flex-col gap-10 min-h-0 overflow-hidden bg-gradient-to-br from-card/50 to-background/30 rounded-2xl p-2 border border-primary/10 shadow-inner">
                     <Card
                         className={`gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl flex-shrink-0 ${
                             animateUpcoming ? "refresh-animate" : ""
