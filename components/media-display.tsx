@@ -42,36 +42,32 @@ export function MediaDisplay({ isTransitioning, viewTimer, currentMediaIndex }: 
         loadMediaFiles();
     }, []);
 
-    if (!publicImages.length || currentMediaIndex >= publicImages.length) {
-        return null;
+    // If no images are loaded yet, show a loading state instead of null
+    if (!publicImages.length) {
+        return (
+            <div className="w-full h-screen flex items-center justify-center">
+                <div className="text-xl text-primary animate-pulse">Loading media...</div>
+            </div>
+        );
     }
 
-    const currentMedia = publicImages[currentMediaIndex];
+    // Ensure currentMediaIndex loops back to 0 when it exceeds array length
+    const safeIndex = currentMediaIndex % publicImages.length;
+    const currentMedia = publicImages[safeIndex];
     const progress = (viewTimer / 20) * 100;
 
     return (
-        <div className={`w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
             <BrandLogos animate={false} />
 
-            <div className="flex items-center justify-center mb-2 px-2 flex-shrink-0">
-                <div className="text-center">
-                    <div className="relative">
-                        <h1 className="whitespace-nowrap text-3xl md:text-6xl font-extrabold text-accent uppercase font-sans">
-                            Super Cup - Season 03
-                        </h1>
-                        <div className="w-24 h-1 mx-auto mt-2 bg-accent rounded-full opacity-90"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="w-full max-w-6xl mx-auto p-4 flex-1 flex flex-col overflow-hidden">
-                <div className="flex-1 flex flex-col items-center justify-center">
-                    <Card className="relative overflow-hidden gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl max-w-6xl w-full">
-                        <div className="relative">
+            <div className="w-full max-w-6xl mx-auto p-4 flex-1">
+                <Card className="relative h-[90vh] gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl">
+                    <div className="relative w-full h-full overflow-hidden">
+                        <div className="min-h-full">
                             {currentMedia.type === 'video' ? (
                                 <video
                                     src={currentMedia.url}
-                                    className="w-full h-[600px] object-cover"
+                                    className="w-full h-full object-contain"
                                     autoPlay
                                     muted
                                     loop
@@ -82,7 +78,7 @@ export function MediaDisplay({ isTransitioning, viewTimer, currentMediaIndex }: 
                                 <img
                                     src={currentMedia.url || "/placeholder.svg"}
                                     alt={currentMedia.title}
-                                    className="w-full h-[600px] object-contain bg-black/5"
+                                    className="w-full h-full object-contain bg-black/5"
                                 />
                             )}
                             <div className="absolute top-0 left-0 right-0 h-1 bg-black/30">
@@ -92,8 +88,8 @@ export function MediaDisplay({ isTransitioning, viewTimer, currentMediaIndex }: 
                                 />
                             </div>
                         </div>
-                    </Card>
-                </div>
+                    </div>
+                </Card>
             </div>
         </div>
     );
