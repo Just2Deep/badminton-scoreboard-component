@@ -217,13 +217,13 @@ export default function BadmintonScoreboard() {
         return (
             <div className="flex items-center gap-3">
                 <span className="font-bold text-xl tracking-wider text-foreground">
-                    {match.player1}
+                    {match.player1.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                 </span>
                 <span className="text-muted-foreground font-light text-xl">
                     vs
                 </span>
                 <span className="font-bold text-xl tracking-wider text-foreground">
-                    {match.player2}
+                    {match.player2.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                 </span>
                 <span className="text-accent font-semibold text-xl mx-1">
                     •
@@ -246,7 +246,7 @@ export default function BadmintonScoreboard() {
     if (error) {
     return (
         <div className={`w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-            <BrandLogos />                
+            <BrandLogos animate={false} />                
             <div className="flex items-center justify-center mb-2 px-2 flex-shrink-0">
                     <div className="text-center">
                         <div className="relative">
@@ -276,34 +276,34 @@ export default function BadmintonScoreboard() {
     }
 
     return (
-        <div className={`w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-            <BrandLogos />
-            <div className="mt-5 text-center px-8 flex-shrink-0">
+        <div className={`w-full h-screen bg-gradient-to-br from-background via-background to-card grid grid-rows-[auto,auto,1fr] overflow-hidden transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+            <BrandLogos animate={false} />
+            <div className="text-center px-4 py-8">
                 <div className="relative">
-                    <h1 className="whitespace-nowrap text-3xl md:text-6xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
+                    <h1 className="text-2xl md:text-5xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
                         Super Cup - Season 03
                     </h1>
-                    <div className="w-32 h-1 mx-auto mt-4 bg-accent rounded-full opacity-90"></div>
+                    <div className="w-24 h-1 mx-auto mt-2 bg-accent rounded-full opacity-90"></div>
                 </div>
             </div>
 
-            <div className="w-full max-w-6xl mx-auto p-2 flex-1 flex flex-col overflow-hidden">
-                <div className="flex-1 flex flex-col gap-2 overflow-hidden bg-gradient-to-br from-card/50 to-background/30 rounded-2xl p-3 border border-primary/10 shadow-inner">
+            <div className="w-full max-w-6xl mx-auto flex flex-col overflow-hidden px-2">
+                <div className="flex flex-col gap-1 min-h-0 overflow-hidden bg-gradient-to-br from-card/50 to-background/30 rounded-2xl p-2 border border-primary/10 shadow-inner">
                     <Card
                         className={`gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl flex-shrink-0 ${
                             animateUpcoming ? "refresh-animate" : ""
                         }`}
                     >
-                        <div className="bg-gradient-to-r from-accent/10 via-accent/5 to-accent/10 px-4 py-2 border-b border-accent/20">
-                            <h3 className="text-xl md:text-4xl font-bold text-accent uppercase tracking-[0.15em] font-mono flex items-center gap-3 justify-center">
-                                <span className="w-2 h-2 bg-accent rounded-full"></span>
+                        <div className="bg-gradient-to-r from-accent/10 via-accent/5 to-accent/10 px-3 py-1 border-b border-accent/20">
+                            <h3 className="text-lg md:text-3xl font-bold text-accent uppercase tracking-[0.15em] font-mono flex items-center gap-2 justify-center">
+                                <span className="w-1.5 h-1.5 bg-accent rounded-full"></span>
                                 Upcoming Matches
-                                <span className="w-2 h-2 bg-accent rounded-full"></span>
+                                <span className="w-1.5 h-1.5 bg-accent rounded-full"></span>
                             </h3>
                         </div>
-                        <div className="p-3">
+                        <div className="p-2 max-h-[calc(60vh)]">
                             {upcomingMatches.length > 0 ? (
-                                <div className="relative overflow-hidden">
+                                <div className="relative overflow-hidden h-full">
                                     <div 
                                         className="grid grid-cols-2 gap-4 transition-transform duration-500 ease-in-out"
                                         style={{
@@ -316,17 +316,17 @@ export default function BadmintonScoreboard() {
                                                 className="px-2"
                                             >
                                                 <div 
-                                                    className="gradient-bg rounded-lg p-4 border border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 h-full"
+                                                    className="gradient-bg rounded-lg p-2 border border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 h-full"
                                                 >
                                                     <div className="flex items-center justify-center gap-3">
                                                         <span className="font-bold text-foreground text-xl tracking-wide truncate flex-1 text-center">
-                                                            {match.player1}
+                                                            {match.player1.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                                                         </span>
                                                         <span className="text-muted-foreground font-light text-xl flex-shrink-0">
                                                             vs
                                                         </span>
                                                         <span className="font-bold text-foreground text-xl tracking-wide truncate flex-1 text-center">
-                                                            {match.player2}
+                                                            {match.player2.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                                                         </span>
                                                     </div>
                                                     {match.startTime && (
@@ -373,12 +373,12 @@ export default function BadmintonScoreboard() {
                     </Card>
 
                     <Card
-                        className={`relative overflow-hidden gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl h-full ${
+                        className={`relative overflow-hidden gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl ${
                             animateRecent ? "refresh-animate" : ""
                         }`}
                     >
-                        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 px-4 py-2 border-b border-primary/20">
-                            <h2 className="text-xl md:text-4xl font-bold text-primary uppercase font-mono flex items-center justify-center gap-3 tracking-[0.15em]">
+                        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 px-3 py-1 border-b border-primary/20">
+                            <h2 className="text-lg md:text-3xl font-bold text-primary uppercase font-mono flex items-center justify-center gap-2 tracking-[0.15em]">
                                 <span className="w-2 h-2 bg-primary rounded-full"></span>
                                 Recent Match Results
                                 <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
@@ -390,7 +390,7 @@ export default function BadmintonScoreboard() {
                             </h2>
                         </div>
                         <div
-                            className="relative py-2 min-h-10 flex items-center overflow-hidden"
+                            className="relative py-1 min-h-8 flex items-center overflow-hidden"
                             onFocus={() => setIsPaused(true)}
                             onBlur={() => setIsPaused(false)}
                             tabIndex={0}
@@ -399,7 +399,7 @@ export default function BadmintonScoreboard() {
                         >
                             {[...liveMatches, ...recentMatches].length > 0 ? (
                                 <div
-                                    className={`flex items-center gap-8 whitespace-nowrap ${
+                                    className={`flex items-center gap-4 whitespace-nowrap ${
                                         isPaused ? "" : "marquee"
                                     }`}
                                     style={{
