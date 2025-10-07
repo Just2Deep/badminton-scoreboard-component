@@ -2,6 +2,8 @@
 
 import { Card } from "@/components/ui/card";
 import { useEffect, useRef, useState } from "react";
+import { BrandLogos } from "./brand-logos";
+import { MediaDisplay } from "./media-display";
 
 interface Match {
     id: string;
@@ -15,14 +17,6 @@ interface Match {
     winner?: string;
     startTime?: string;
     endTime?: string;
-}
-
-interface MediaItem {
-    id: string;
-    type: "image" | "video";
-    src: string;
-    title: string;
-    description?: string;
 }
 
 interface ApiResponse {
@@ -44,57 +38,15 @@ type SheetRow = {
 const SHEET_URL =
     "https://opensheet.elk.sh/16bUHth1gRVkT3c7kkIr_Bo7kj4IQ87ETZ1tSjkuCQFw/Sheet1";
 
-const MEDIA_TITLES: Record<string, string> = {
-    "badminton-championship-trophy-ceremony": "Championship Trophy Ceremony",
-    "badminton-closing-ceremony": "Closing Ceremony",
-    "badminton-court-aerial-view": "Court Aerial View",
-    "badminton-crowd-cheering": "Crowd Support",
-    "badminton-doubles-team-high-five": "Team Spirit",
-    "badminton-fans-with-flags": "Fan Support",
-    "badminton-match-action-shot": "Match Action",
-    "badminton-medal-ceremony": "Medal Ceremony",
-    "badminton-player-interview": "Player Interview",
-    "badminton-player-jumping-smash": "Power Smash",
-    "badminton-player-serving": "Perfect Serve",
-    "badminton-players-celebrating-victory": "Victory Celebration",
-    "badminton-referee-making-call": "Referee Call",
-    "badminton-tournament-sponsors": "Tournament Sponsors",
-    "badminton-warm-up-session": "Warm Up Session"
-};
-
-const BrandLogos = () => (
-    <>
-        <div className="fixed top-4 left-4 z-50">
-            <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
-                <img
-                    src="/images/design-mode/academy-logo.png"
-                    alt="Sports Clan Badminton Academy logo"
-                    className="w-full h-full object-contain p-1"
-                />
-            </div>
-        </div>
-        <div className="fixed top-4 right-4 z-50">
-            <div className="w-32 h-32 md:w-40 md:h-40 gradient-bg border border-primary/30 rounded-2xl flex items-center justify-center shadow-2xl float-effect overflow-hidden">
-                <img
-                    src="/images/design-mode/other-logo.png"
-                    alt="Super Park Sports logo"
-                    className="w-full h-full object-contain p-1"
-                />
-            </div>
-        </div>
-    </>
-);
-
 export default function BadmintonScoreboard() {
-    const [publicImages, setPublicImages] = useState<MediaItem[]>([]);
     const [currentTickerIndex, setCurrentTickerIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [currentView, setCurrentView] = useState<"scoreboard" | "media">(
         "scoreboard"
     );
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-
     const [viewTimer, setViewTimer] = useState(0);
+    const [isTransitioning, setIsTransitioning] = useState(false);
 
     const [recentMatches, setRecentMatches] = useState<Match[]>([]);
     const [liveMatches, setLiveMatches] = useState<Match[]>([]);
@@ -130,8 +82,8 @@ export default function BadmintonScoreboard() {
                         statusRaw === "past"
                             ? "completed"
                             : statusRaw === "next"
-                            ? "upcoming"
-                            : "upcoming";
+                                ? "upcoming"
+                                : "upcoming";
 
                     return {
                         id: `sheet-${matchNum}`,
@@ -198,37 +150,12 @@ export default function BadmintonScoreboard() {
             setUpcomingLoaded(true);
             setLiveLoaded(true);
         } catch (err) {
-            console.error("[v0] Error fetching OpenSheet rows:", err);
+            console.error("Error fetching OpenSheet rows:", err);
             setError("Network error while fetching matches");
         } finally {
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        const loadMediaFiles = async () => {
-            try {
-                const response = await fetch('/api/media');
-                if (!response.ok) throw new Error('Failed to fetch media files');
-                
-                const files = await response.json();
-                const mediaItems: MediaItem[] = files.map((filename: string, index: number) => {
-                    const nameWithoutExt = filename.replace('.jpg', '');
-                    return {
-                        id: `media${index + 1}`,
-                        type: 'image',
-                        src: `/media/${filename}`,
-                        title: MEDIA_TITLES[nameWithoutExt] || nameWithoutExt,
-                    };
-                });
-                setPublicImages(mediaItems);
-            } catch (error) {
-                console.error('Error loading media files:', error);
-            }
-        };
-
-        loadMediaFiles();
-    }, []);
 
     useEffect(() => {
         fetchMatches();
@@ -250,11 +177,19 @@ export default function BadmintonScoreboard() {
                 const newTimer = prev + 1;
 
                 if (currentView === "scoreboard" && newTimer >= 30) {
-                    setCurrentView("media");
+                    setIsTransitioning(true);
+                    setTimeout(() => {
+                        setCurrentView("media");
+                        setIsTransitioning(false);
+                    }, 500);
                     return 0;
                 } else if (currentView === "media" && newTimer >= 20) {
-                    setCurrentView("scoreboard");
-                    setCurrentMediaIndex((prev) => (prev + 1) % publicImages.length);
+                    setIsTransitioning(true);
+                    setTimeout(() => {
+                        setCurrentView("scoreboard");
+                        setCurrentMediaIndex((prev) => prev + 1);
+                        setIsTransitioning(false);
+                    }, 500);
                     return 0;
                 }
 
@@ -266,14 +201,15 @@ export default function BadmintonScoreboard() {
     }, [currentView]);
 
     useEffect(() => {
-        if (upcomingMatches.length > 0) {
+        if (upcomingMatches.length > 3) {
             const interval = setInterval(() => {
                 setCurrentTickerIndex(
-                    (prev) =>
-                        (prev + 1) % Math.max(1, upcomingMatches.length - 1)
+                    (prev) => (prev + 1) % Math.ceil(upcomingMatches.length / 3)
                 );
-            }, 4000);
+            }, 5000);
             return () => clearInterval(interval);
+        } else {
+            setCurrentTickerIndex(0);
         }
     }, [upcomingMatches.length]);
 
@@ -299,81 +235,19 @@ export default function BadmintonScoreboard() {
         );
     };
 
-    const MediaSlideshow = () => {
-        const currentMedia = publicImages[currentMediaIndex];
-        const progress = (viewTimer / 20) * 100;
-
-        return (
-            <div className="w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden">
-                {/* Vertically centered logos */}
-                <BrandLogos />
-                
-                {/* Centered header container */}
-                <div className="flex items-center justify-center mb-2 px-2 flex-shrink-0">
-                    <div className="text-center">
-                        <div className="relative">
-                            <h1 className="whitespace-nowrap text-3xl md:text-6xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
-                                Super Cup - Season 03
-                            </h1>
-                            <div className="w-24 h-1 mx-auto mt-2 bg-accent rounded-full opacity-90"></div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Main content container with reduced width */}
-                <div className="w-full max-w-6xl mx-auto p-4 flex-1 flex flex-col overflow-hidden">
-                    <div className="flex-1 flex flex-col items-center justify-center">
-                        <Card className="relative overflow-hidden gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl max-w-6xl w-full">
-                            <div className="relative">
-                                <img
-                                    src={currentMedia.src || "/placeholder.svg"}
-                                    alt={currentMedia.title}
-                                    className="w-full h-[600px] object-cover"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                                <div className="absolute bottom-0 left-0 right-0 p-12">
-                                    <h3 className="text-4xl font-bold text-white mb-3 drop-shadow-lg">
-                                        {currentMedia.title}
-                                    </h3>
-                                    {currentMedia.description && (
-                                        <p className="text-xl text-white/90 drop-shadow-lg">
-                                            {currentMedia.description}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="absolute top-0 left-0 right-0 h-1 bg-black/30">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-linear"
-                                        style={{ width: `${progress}%` }}
-                                    />
-                                </div>
-
-                                <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
-                                    <span className="text-white font-bold">
-                                        {`${currentMediaIndex + 1}/${publicImages.length}`}
-                                    </span>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     if (currentView === "media") {
-        return <MediaSlideshow />;
+        return <MediaDisplay 
+            isTransitioning={isTransitioning}
+            viewTimer={viewTimer}
+            currentMediaIndex={currentMediaIndex}
+        />;
     }
 
     if (error) {
-        return (
-            <div className="w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden">
-                <BrandLogos />
-
-                {/* Centered header container */}
-                <div className="flex items-center justify-center mb-2 px-2 flex-shrink-0">
+    return (
+        <div className={`w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+            <BrandLogos />                
+            <div className="flex items-center justify-center mb-2 px-2 flex-shrink-0">
                     <div className="text-center">
                         <div className="relative">
                             <h1 className="whitespace-nowrap text-3xl md:text-6xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
@@ -384,7 +258,6 @@ export default function BadmintonScoreboard() {
                     </div>
                 </div>
 
-                {/* Main content container with reduced width */}
                 <div className="w-full max-w-6xl mx-auto p-6 flex-1 flex items-center justify-center">
                     <div className="text-center">
                         <p className="text-xl font-semibold text-red-500 mb-4">
@@ -403,10 +276,9 @@ export default function BadmintonScoreboard() {
     }
 
     return (
-        <div className="w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden">
-
+        <div className={`w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
             <BrandLogos />
-            <div className="mt-44 text-center px-8 flex-shrink-0">
+            <div className="mt-5 text-center px-8 flex-shrink-0">
                 <div className="relative">
                     <h1 className="whitespace-nowrap text-3xl md:text-6xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
                         Super Cup - Season 03
@@ -415,9 +287,7 @@ export default function BadmintonScoreboard() {
                 </div>
             </div>
 
-            {/* Main content container with reduced width */}
             <div className="w-full max-w-6xl mx-auto p-2 flex-1 flex flex-col overflow-hidden">
-                {/* Scores Container - Contains all score-related content */}
                 <div className="flex-1 flex flex-col gap-2 overflow-hidden bg-gradient-to-br from-card/50 to-background/30 rounded-2xl p-3 border border-primary/10 shadow-inner">
                     <Card
                         className={`gradient-bg border-primary/20 shadow-2xl backdrop-blur-xl flex-shrink-0 ${
@@ -433,50 +303,68 @@ export default function BadmintonScoreboard() {
                         </div>
                         <div className="p-3">
                             {upcomingMatches.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {upcomingMatches
-                                        .slice(0, 6)
-                                        .map((match, index) => (
+                                <div className="relative overflow-hidden">
+                                    <div 
+                                        className="flex transition-transform duration-500 ease-in-out"
+                                        style={{
+                                            transform: `translateX(-${currentTickerIndex * (100 / Math.min(3, upcomingMatches.length))}%)`,
+                                        }}
+                                    >
+                                        {upcomingMatches.map((match, index) => (
                                             <div
                                                 key={match.id}
-                                                className="gradient-bg rounded-lg p-4 border border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 ticker-slide-in"
-                                                style={{
-                                                    animationDelay: `${
-                                                        index * 0.1
-                                                    }s`,
-                                                }}
+                                                className="w-full min-w-[33.333%] px-2"
                                             >
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-base font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                                                            #{match.matchNumber}
+                                                <div 
+                                                    className="gradient-bg rounded-lg p-4 border border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 h-full"
+                                                >
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-base font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
+                                                                #{match.matchNumber}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <span className="font-bold text-foreground text-base tracking-wide truncate flex-1 text-center">
+                                                            {match.player1}
+                                                        </span>
+                                                        <span className="text-muted-foreground font-light text-sm flex-shrink-0">
+                                                            vs
+                                                        </span>
+                                                        <span className="font-bold text-foreground text-base tracking-wide truncate flex-1 text-center">
+                                                            {match.player2}
                                                         </span>
                                                     </div>
+                                                    {match.startTime && (
+                                                        <div className="mt-4 pt-4 border-t border-primary/10">
+                                                            <span className="text-base text-muted-foreground bg-muted/20 px-3 py-1 rounded-lg">
+                                                                {match.startTime}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <span className="font-bold text-foreground text-base tracking-wide truncate flex-1 text-center">
-                                                        {match.player1}
-                                                    </span>
-                                                    <span className="text-muted-foreground font-light text-sm flex-shrink-0">
-                                                        vs
-                                                    </span>
-                                                    <span className="font-bold text-foreground text-base tracking-wide truncate flex-1 text-center">
-                                                        {match.player2}
-                                                    </span>
-                                                </div>
-                                                {match.startTime && (
-                                                    <div className="mt-4 pt-4 border-t border-primary/10">
-                                                        <span className="text-base text-muted-foreground bg-muted/20 px-3 py-1 rounded-lg">
-                                                            {match.startTime}
-                                                        </span>
-                                                    </div>
-                                                )}
                                             </div>
                                         ))}
+                                    </div>
+                                    {upcomingMatches.length > 3 && (
+                                        <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-2 py-4">
+                                            {Array.from({ length: Math.ceil(upcomingMatches.length / 2) }).map((_, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                                        currentTickerIndex === idx ? 'bg-primary' : 'bg-primary/30'
+                                                    }`}
+                                                    onClick={() => setCurrentTickerIndex(idx)}
+                                                    aria-label={`Show matches page ${idx + 1}`}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {Array.from({ length: 6 }).map((_, i) => (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {Array.from({ length: 3 }).map((_, i) => (
                                         <div
                                             key={i}
                                             className="rounded-xl p-5 border border-primary/10 shadow-lg"
@@ -509,7 +397,7 @@ export default function BadmintonScoreboard() {
                             </h2>
                         </div>
                         <div
-                            className="relative h-12 flex items-center overflow-hidden"
+                            className="relative h-4 flex items-center overflow-hidden"
                             onFocus={() => setIsPaused(true)}
                             onBlur={() => setIsPaused(false)}
                             tabIndex={0}
@@ -518,7 +406,7 @@ export default function BadmintonScoreboard() {
                         >
                             {[...liveMatches, ...recentMatches].length > 0 ? (
                                 <div
-                                    className={`flex items-center gap-12 whitespace-nowrap ${
+                                    className={`flex items-center gap-8 whitespace-nowrap ${
                                         isPaused ? "" : "marquee"
                                     }`}
                                     style={{
@@ -531,14 +419,13 @@ export default function BadmintonScoreboard() {
                                         (match) => (
                                             <div
                                                 key={match.id}
-                                                className="flex items-center gap-4 px-4 py-2 gradient-bg rounded-xl border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300"
+                                                className="flex items-center gap-4 px-3 py-1 gradient-bg rounded-xl border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className="text-base font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
                                                         #{match.matchNumber}
                                                     </div>
-                                                    {match.status ===
-                                                        "live" && (
+                                                    {match.status === "live" && (
                                                         <div className="text-sm font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-lg animate-pulse">
                                                             LIVE
                                                         </div>
