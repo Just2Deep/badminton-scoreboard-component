@@ -378,7 +378,7 @@ export default function BadmintonScoreboard() {
                         }`}
                     >
                         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 px-4 py-2 border-b border-primary/20">
-                            <h2 className="text-xl md:text-4xl font-bold text-primary uppercase font-mono flex items-center justify-center gap-3">
+                            <h2 className="text-xl md:text-4xl font-bold text-primary uppercase font-mono flex items-center justify-center gap-3 tracking-[0.15em]">
                                 <span className="w-2 h-2 bg-primary rounded-full"></span>
                                 Recent Match Results
                                 <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
