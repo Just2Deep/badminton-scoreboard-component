@@ -246,7 +246,8 @@ export default function BadmintonScoreboard() {
     if (error) {
     return (
         <div className={`w-full h-screen bg-gradient-to-br from-background via-background to-card flex flex-col overflow-hidden transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-            <BrandLogos />                <div className="flex items-center justify-center mb-2 px-2 flex-shrink-0">
+            <BrandLogos />                
+            <div className="flex items-center justify-center mb-2 px-2 flex-shrink-0">
                     <div className="text-center">
                         <div className="relative">
                             <h1 className="whitespace-nowrap text-3xl md:text-6xl font-extrabold text-accent uppercase tracking-[0.12em] font-sans">
@@ -396,7 +397,7 @@ export default function BadmintonScoreboard() {
                             </h2>
                         </div>
                         <div
-                            className="relative h-12 flex items-center overflow-hidden"
+                            className="relative h-4 flex items-center overflow-hidden"
                             onFocus={() => setIsPaused(true)}
                             onBlur={() => setIsPaused(false)}
                             tabIndex={0}
@@ -405,7 +406,7 @@ export default function BadmintonScoreboard() {
                         >
                             {[...liveMatches, ...recentMatches].length > 0 ? (
                                 <div
-                                    className={`flex items-center gap-12 whitespace-nowrap ${
+                                    className={`flex items-center gap-8 whitespace-nowrap ${
                                         isPaused ? "" : "marquee"
                                     }`}
                                     style={{
@@ -418,7 +419,7 @@ export default function BadmintonScoreboard() {
                                         (match) => (
                                             <div
                                                 key={match.id}
-                                                className="flex items-center gap-4 px-4 py-2 gradient-bg rounded-xl border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300"
+                                                className="flex items-center gap-4 px-3 py-1 gradient-bg rounded-xl border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className="text-base font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">

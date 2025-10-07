@@ -82,7 +82,7 @@ export function MediaDisplay({ isTransitioning, viewTimer, currentMediaIndex }: 
                                 <img
                                     src={currentMedia.url || "/placeholder.svg"}
                                     alt={currentMedia.title}
-                                    className="w-full h-[600px] object-cover"
+                                    className="w-full h-[600px] object-contain bg-black/5"
                                 />
                             )}
                             <div className="absolute top-0 left-0 right-0 h-1 bg-black/30">
