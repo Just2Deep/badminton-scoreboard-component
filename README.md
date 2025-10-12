@@ -67,7 +67,7 @@ Your project is live at:
 
 ### Local Setup
 
-```bash
+\`\`\`bash
 # Install dependencies
 pnpm install
 
@@ -76,7 +76,7 @@ pnpm dev
 
 # Build for production
 pnpm build
-```
+\`\`\`
 
 ### Environment
 
