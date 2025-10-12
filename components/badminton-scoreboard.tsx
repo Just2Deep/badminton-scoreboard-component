@@ -1,5 +1,6 @@
 "use client";
 
+
 import { Card } from "@/components/ui/card";
 import { useEffect, useRef, useState } from "react";
 import { BrandLogos } from "./brand-logos";
