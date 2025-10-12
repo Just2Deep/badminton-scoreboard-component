@@ -332,7 +332,7 @@ export default function BadmintonScoreboard() {
                         <div className="gradient-bg rounded-lg p-2 border border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 h-full">
                           {/* Metadata chips */}
                           <div className="flex items-center justify-center gap-2 mb-2">
-                            <span className="text-[11px] md:text-xs uppercase tracking-wide text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                            <span className="text-[11px] md:text-md uppercase tracking-wide text-accent bg-accent/10 px-2 py-0.5 rounded-full">
                               {labelForCategory(match.category)}
                             </span>
                             <span className="text-[11px] md:text-xs tracking-wide text-primary bg-primary/10 px-2 py-0.5 rounded-full">
@@ -435,7 +435,7 @@ export default function BadmintonScoreboard() {
                         <div className="text-base font-bold text-primary bg-primary/10 px-3 py-2 rounded-lg">
                           #{match.matchNumber}
                         </div>
-                        <div className="text-xs font-semibold text-accent bg-accent/10 px-2 py-1 rounded-lg uppercase">
+                        <div className="text-md font-semibold text-accent bg-accent/10 px-2 py-1 rounded-lg uppercase">
                           {labelForCategory(match.category)}
                         </div>
                         {match.status === "live" && (
