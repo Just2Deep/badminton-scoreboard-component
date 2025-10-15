@@ -195,7 +195,7 @@ export default function BadmintonScoreboard() {
       setViewTimer((prev) => {
         const newTimer = prev + 1
 
-        if (currentView === "scoreboard" && newTimer >= 30) {
+        if (currentView === "scoreboard" && newTimer >= 20) {
           setIsTransitioning(true)
           setTimeout(() => {
             setCurrentView("media")
